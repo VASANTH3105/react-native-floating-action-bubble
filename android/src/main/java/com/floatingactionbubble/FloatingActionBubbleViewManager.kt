@@ -80,6 +80,21 @@ class FloatingActionBubbleViewManager : SimpleViewManager<FloatingActionBubbleVi
     view.setOnLongPressNavigate(value)
   }
 
+  @ReactProp(name = "positionSticky")
+  override fun setPositionSticky(view: FloatingActionBubbleView, value: Boolean) {
+    view.setPositionSticky(value)
+  }
+
+  @ReactProp(name = "stickyShapeAdaptive")
+  override fun setStickyShapeAdaptive(view: FloatingActionBubbleView, value: Boolean) {
+    view.setStickyShapeAdaptive(value)
+  }
+
+  @ReactProp(name = "stickyCornerRadius")
+  override fun setStickyCornerRadius(view: FloatingActionBubbleView, value: Float) {
+    view.setStickyCornerRadius(value)
+  }
+
   companion object {
     const val NAME = "FloatingActionBubbleView"
   }

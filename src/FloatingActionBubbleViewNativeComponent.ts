@@ -16,6 +16,9 @@ export interface NativeProps extends ViewProps {
   autoFadeOpacity?: Float;
   autoFadeTimingMs?: Int32;
   onLongPressNavigate?: string;
+  positionSticky?: boolean;
+  stickyShapeAdaptive?: boolean;
+  stickyCornerRadius?: Float;
 }
 
 export default codegenNativeComponent<NativeProps>('FloatingActionBubbleView');

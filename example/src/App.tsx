@@ -34,16 +34,19 @@ function HomeScreen() {
 
   const handleStart = () => {
     showOverlay({
-      size: 56,
-      color: '#FFFFFF',
-      borderColor: '#FFFFFF',
-      borderWidth: 6,
+      size: 40,
+      color: '#ffffff',
+      borderColor: '#000000',
+      borderWidth: 2,
       bubbleOpacity: 1,
       borderOpacity: 0.6,
       autoFade: true,
       autoFadeOpacity: 0.35,
       autoFadeTimingMs: 2500,
-      onLongPressNavigate: 'fab://profile'
+      onLongPressNavigate: 'fab://profile',
+      positionSticky: true,
+      stickyShapeAdaptive: true,
+      stickyCornerRadius: 8,
     });
   };
 
@@ -76,16 +79,18 @@ function HomeScreen() {
       <View style={styles.previewCard}>
         <Text style={styles.previewTitle}>In-app Preview</Text>
         <FloatingActionBubbleView
-          color="#FFFFFF"
-          borderColor="#FFFFFF"
+          color="#0a0a0a"
+          borderColor="#e70000"
           borderWidth={6}
           bubbleOpacity={1}
           borderOpacity={0.6}
           autoFade
           autoFadeOpacity={0.35}
           autoFadeTimingMs={2500}
-          // onLongPressNavigate="fab://profile"
-          onLongPressNavigate='fab://profile'
+          onLongPressNavigate="fab://profile"
+          positionSticky
+          stickyShapeAdaptive
+          stickyCornerRadius={12}
           style={styles.box}
         />
       </View>
