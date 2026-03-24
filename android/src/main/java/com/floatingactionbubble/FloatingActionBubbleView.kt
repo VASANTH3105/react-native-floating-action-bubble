@@ -8,7 +8,11 @@ import android.os.Looper
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
+import android.content.Intent
+import android.net.Uri
 import kotlin.math.roundToInt
+import kotlin.math.abs
 
 class FloatingActionBubbleView : View {
   constructor(context: Context?) : super(context)
@@ -30,9 +34,21 @@ class FloatingActionBubbleView : View {
   private var autoFade: Boolean = false
   private var autoFadeOpacity: Float = DEFAULT_AUTO_FADE_OPACITY
   private var autoFadeTimingMs: Long = DEFAULT_AUTO_FADE_TIMING_MS
+  private var onLongPressNavigate: String? = null
 
   private var dragDX = 0f
   private var dragDY = 0f
+  private var downRawX = 0f
+  private var downRawY = 0f
+  private var longPressTriggered = false
+
+  private val longPressHandler = Handler(Looper.getMainLooper())
+  private val longPressRunnable = Runnable {
+    if (!longPressTriggered) {
+      longPressTriggered = true
+      openDeepLink(onLongPressNavigate)
+    }
+  }
 
   private val fadeRunnable = Runnable {
     if (autoFade) {
@@ -48,14 +64,28 @@ class FloatingActionBubbleView : View {
     setOnTouchListener { v, event ->
       when (event.actionMasked) {
         MotionEvent.ACTION_DOWN -> {
+          longPressTriggered = false
           dragDX = event.rawX - v.x
           dragDY = event.rawY - v.y
+          downRawX = event.rawX
+          downRawY = event.rawY
           animate().cancel()
-          alpha = bubbleOpacity.coerceIn(0f, 1f)
+          alpha = 1f
           mainHandler.removeCallbacks(fadeRunnable)
+          if (!onLongPressNavigate.isNullOrBlank()) {
+            longPressHandler.postDelayed(
+              longPressRunnable,
+              ViewConfiguration.getLongPressTimeout().toLong()
+            )
+          }
           true
         }
         MotionEvent.ACTION_MOVE -> {
+          val moveX = abs(event.rawX - downRawX)
+          val moveY = abs(event.rawY - downRawY)
+          if (moveX > 10 || moveY > 10) {
+            longPressHandler.removeCallbacks(longPressRunnable)
+          }
           val parentView = v.parent as? View
           val maxWidth = (parentView?.width ?: v.rootView.width) - v.width
           val maxHeight = (parentView?.height ?: v.rootView.height) - v.height
@@ -66,6 +96,7 @@ class FloatingActionBubbleView : View {
           true
         }
         MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+          longPressHandler.removeCallbacks(longPressRunnable)
           scheduleAutoFade()
           true
         }
@@ -124,6 +155,18 @@ class FloatingActionBubbleView : View {
     scheduleAutoFade()
   }
 
+  fun setOnLongPressNavigate(path: String?) {
+    onLongPressNavigate = path
+  }
+
+  fun triggerAutoFade() {
+    scheduleAutoFade()
+  }
+
+  fun cancelAutoFade() {
+    mainHandler.removeCallbacks(fadeRunnable)
+  }
+
   fun applyOverlayConfig(
     sizeDp: Float?,
     color: Int?,
@@ -133,7 +176,8 @@ class FloatingActionBubbleView : View {
     borderOpacity: Float?,
     autoFade: Boolean?,
     autoFadeOpacity: Float?,
-    autoFadeTimingMs: Int?
+    autoFadeTimingMs: Int?,
+    onLongPressNavigate: String?
   ) {
     if (sizeDp != null) setSize(sizeDp)
     if (color != null) setBubbleColor(color)
@@ -144,6 +188,7 @@ class FloatingActionBubbleView : View {
     if (autoFade != null) setAutoFade(autoFade)
     if (autoFadeOpacity != null) setAutoFadeOpacity(autoFadeOpacity)
     if (autoFadeTimingMs != null) setAutoFadeTimingMs(autoFadeTimingMs)
+    if (!onLongPressNavigate.isNullOrBlank()) setOnLongPressNavigate(onLongPressNavigate)
   }
 
   private fun applyVisuals() {
@@ -159,6 +204,15 @@ class FloatingActionBubbleView : View {
     mainHandler.removeCallbacks(fadeRunnable)
     if (autoFade) {
       mainHandler.postDelayed(fadeRunnable, autoFadeTimingMs)
+    }
+  }
+
+  private fun openDeepLink(path: String?) {
+    if (path.isNullOrBlank()) return
+    runCatching {
+      val intent = Intent(Intent.ACTION_VIEW, Uri.parse(path))
+      intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      context.startActivity(intent)
     }
   }
 

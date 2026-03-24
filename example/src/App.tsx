@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
 import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
   FloatingActionBubbleView,
   hideOverlay,
@@ -8,8 +11,12 @@ import {
   showOverlay,
 } from 'react-native-floating-action-bubble';
 
-export default function App() {
+const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
+
+function HomeScreen() {
   const [hasPermission, setHasPermission] = useState(false);
+
   const refreshPermission = async () => {
     const granted = await isOverlayPermissionGranted();
     setHasPermission(granted);
@@ -36,6 +43,7 @@ export default function App() {
       autoFade: true,
       autoFadeOpacity: 0.35,
       autoFadeTimingMs: 2500,
+      onLongPressNavigate: 'fab://profile'
     });
   };
 
@@ -76,10 +84,92 @@ export default function App() {
           autoFade
           autoFadeOpacity={0.35}
           autoFadeTimingMs={2500}
+          // onLongPressNavigate="fab://profile"
+          onLongPressNavigate='fab://profile'
           style={styles.box}
         />
       </View>
     </View>
+  );
+}
+
+function SettingsScreen() {
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Settings</Text>
+      <Text style={styles.previewTitle}>
+        Add your settings and preferences here.
+      </Text>
+    </View>
+  );
+}
+
+function DetailsScreen() {
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Details</Text>
+      <Text style={styles.previewTitle}>
+        Opened from bubble long press deep link.
+      </Text>
+    </View>
+  );
+}
+
+function ProfileScreen() {
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Profile</Text>
+      <Text style={styles.previewTitle}>
+        This is the profile screen.
+      </Text>
+    </View>
+  );
+}
+
+
+
+ 
+
+
+function Tabs() {
+  return (
+    <Tab.Navigator screenOptions={{ headerShown: false }}>
+      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Settings" component={SettingsScreen} />
+      <Tab.Screen name="Profile" component={ProfileScreen} />
+    </Tab.Navigator>
+  );
+}
+
+export default function App() {
+  return (
+    <NavigationContainer
+      linking={{
+        prefixes: ['fab://'],
+        config: {
+          screens: {
+            Tabs: {
+              path: '',
+              screens: {
+                Home: 'home',
+                Settings: 'settings',
+                Profile: 'profile',
+              },
+            },
+            Details: 'details',
+          },
+        },
+      }}
+    >
+      <Stack.Navigator>
+        <Stack.Screen
+          name="Tabs"
+          component={Tabs}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen name="Details" component={DetailsScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
 

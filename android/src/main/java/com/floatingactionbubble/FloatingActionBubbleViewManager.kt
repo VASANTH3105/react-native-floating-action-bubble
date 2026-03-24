@@ -75,6 +75,11 @@ class FloatingActionBubbleViewManager : SimpleViewManager<FloatingActionBubbleVi
     view.setAutoFadeTimingMs(value)
   }
 
+  @ReactProp(name = "onLongPressNavigate")
+  override fun setOnLongPressNavigate(view: FloatingActionBubbleView, value: String?) {
+    view.setOnLongPressNavigate(value)
+  }
+
   companion object {
     const val NAME = "FloatingActionBubbleView"
   }

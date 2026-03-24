@@ -12,6 +12,7 @@ const DEFAULTS: Partial<NativeProps> = {
   autoFade: false,
   autoFadeOpacity: 0.2,
   autoFadeTimingMs: 2000,
+  onLongPressNavigate: undefined,
 };
 
 export default function FloatingActionBubbleView(props: NativeProps) {

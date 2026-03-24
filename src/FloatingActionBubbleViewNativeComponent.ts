@@ -15,6 +15,7 @@ export interface NativeProps extends ViewProps {
   autoFade?: boolean;
   autoFadeOpacity?: Float;
   autoFadeTimingMs?: Int32;
+  onLongPressNavigate?: string;
 }
 
 export default codegenNativeComponent<NativeProps>('FloatingActionBubbleView');

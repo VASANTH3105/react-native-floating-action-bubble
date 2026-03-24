@@ -71,6 +71,9 @@ class FloatingActionBubbleModule(reactContext: ReactApplicationContext) :
       if (options.hasKey("autoFadeTimingMs") && !options.isNull("autoFadeTimingMs")) {
         intent.putExtra("autoFadeTimingMs", options.getInt("autoFadeTimingMs"))
       }
+      if (options.hasKey("onLongPressNavigate") && !options.isNull("onLongPressNavigate")) {
+        intent.putExtra("onLongPressNavigate", options.getString("onLongPressNavigate"))
+      }
     }
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

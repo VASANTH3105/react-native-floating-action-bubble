@@ -1,6 +1,7 @@
 #import "FloatingActionBubbleView.h"
 
 #import <React/RCTConversions.h>
+#import <React/RCTUtils.h>
 
 #import <react/renderer/components/FloatingActionBubbleViewSpec/ComponentDescriptors.h>
 #import <react/renderer/components/FloatingActionBubbleViewSpec/Props.h>
@@ -19,6 +20,7 @@ using namespace facebook::react;
     NSInteger _autoFadeTimingMs;
     BOOL _autoFade;
     NSTimer * _fadeTimer;
+    NSString * _onLongPressNavigate;
 }
 
 + (ComponentDescriptorProvider)componentDescriptorProvider
@@ -45,6 +47,11 @@ using namespace facebook::react;
 
     UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
     [_view addGestureRecognizer:pan];
+
+    UILongPressGestureRecognizer *longPress = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleLongPress:)];
+    longPress.minimumPressDuration = 0.5;
+    longPress.cancelsTouchesInView = NO;
+    [_view addGestureRecognizer:longPress];
 
     self.contentView = _view;
   }
@@ -102,6 +109,14 @@ using namespace facebook::react;
         [self scheduleAutoFade];
     }
 
+    if (oldViewProps.onLongPressNavigate != newViewProps.onLongPressNavigate) {
+        if (!newViewProps.onLongPressNavigate.empty()) {
+            _onLongPressNavigate = [NSString stringWithUTF8String:newViewProps.onLongPressNavigate.c_str()];
+        } else {
+            _onLongPressNavigate = nil;
+        }
+    }
+
     [super updateProps:props oldProps:oldProps];
 }
 
@@ -123,7 +138,7 @@ using namespace facebook::react;
   CGPoint translation = [gesture translationInView:target.superview];
   if (gesture.state == UIGestureRecognizerStateBegan) {
     [self cancelAutoFade];
-    _view.alpha = _bubbleOpacity;
+    _view.alpha = 1.0;
   }
 
   CGPoint newCenter = CGPointMake(target.center.x + translation.x, target.center.y + translation.y);
@@ -133,6 +148,28 @@ using namespace facebook::react;
   if (gesture.state == UIGestureRecognizerStateEnded || gesture.state == UIGestureRecognizerStateCancelled) {
     [self scheduleAutoFade];
   }
+}
+
+- (void)handleLongPress:(UILongPressGestureRecognizer *)gesture
+{
+  if (gesture.state != UIGestureRecognizerStateBegan) {
+    return;
+  }
+
+  if (_onLongPressNavigate.length == 0) {
+    return;
+  }
+
+  NSURL *url = [NSURL URLWithString:_onLongPressNavigate];
+  if (!url) {
+    return;
+  }
+
+  RCTExecuteOnMainQueue(^{
+    UIApplication *app = RCTSharedApplication();
+    if (!app) return;
+    [app openURL:url options:@{} completionHandler:nil];
+  });
 }
 
 - (void)scheduleAutoFade

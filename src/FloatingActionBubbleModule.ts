@@ -10,6 +10,7 @@ type OverlayOptions = {
   autoFade?: boolean;
   autoFadeOpacity?: number;
   autoFadeTimingMs?: number;
+  onLongPressNavigate?: string;
 };
 
 type NotificationOptions = {
