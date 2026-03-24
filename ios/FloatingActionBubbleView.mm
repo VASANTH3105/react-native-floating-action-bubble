@@ -12,6 +12,13 @@ using namespace facebook::react;
 
 @implementation FloatingActionBubbleView {
     UIView * _view;
+    CGFloat _size;
+    CGFloat _bubbleOpacity;
+    CGFloat _borderOpacity;
+    CGFloat _autoFadeOpacity;
+    NSInteger _autoFadeTimingMs;
+    BOOL _autoFade;
+    NSTimer * _fadeTimer;
 }
 
 + (ComponentDescriptorProvider)componentDescriptorProvider
@@ -26,6 +33,18 @@ using namespace facebook::react;
     _props = defaultProps;
 
     _view = [[UIView alloc] init];
+    _view.userInteractionEnabled = YES;
+    _view.layer.masksToBounds = YES;
+
+    _size = 48.0;
+    _bubbleOpacity = 1.0;
+    _borderOpacity = 1.0;
+    _autoFadeOpacity = 0.2;
+    _autoFadeTimingMs = 2000;
+    _autoFade = NO;
+
+    UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
+    [_view addGestureRecognizer:pan];
 
     self.contentView = _view;
   }
@@ -42,7 +61,105 @@ using namespace facebook::react;
         [_view setBackgroundColor: RCTUIColorFromSharedColor(newViewProps.color)];
     }
 
+    if (oldViewProps.size != newViewProps.size) {
+        _size = newViewProps.size > 0 ? newViewProps.size : 48.0;
+        [self invalidateIntrinsicContentSize];
+        [self setNeedsLayout];
+    }
+
+    if (oldViewProps.borderColor != newViewProps.borderColor) {
+        UIColor *borderColor = RCTUIColorFromSharedColor(newViewProps.borderColor);
+        _view.layer.borderColor = [borderColor colorWithAlphaComponent:_borderOpacity].CGColor;
+    }
+
+    if (oldViewProps.borderWidth != newViewProps.borderWidth) {
+        _view.layer.borderWidth = newViewProps.borderWidth > 0 ? newViewProps.borderWidth : 0;
+    }
+
+    if (oldViewProps.bubbleOpacity != newViewProps.bubbleOpacity) {
+        _bubbleOpacity = newViewProps.bubbleOpacity;
+        _view.alpha = _bubbleOpacity;
+    }
+
+    if (oldViewProps.borderOpacity != newViewProps.borderOpacity) {
+        _borderOpacity = newViewProps.borderOpacity;
+        UIColor *borderColor = RCTUIColorFromSharedColor(newViewProps.borderColor);
+        _view.layer.borderColor = [borderColor colorWithAlphaComponent:_borderOpacity].CGColor;
+    }
+
+    if (oldViewProps.autoFade != newViewProps.autoFade) {
+        _autoFade = newViewProps.autoFade;
+        [self scheduleAutoFade];
+    }
+
+    if (oldViewProps.autoFadeOpacity != newViewProps.autoFadeOpacity) {
+        _autoFadeOpacity = newViewProps.autoFadeOpacity;
+        [self scheduleAutoFade];
+    }
+
+    if (oldViewProps.autoFadeTimingMs != newViewProps.autoFadeTimingMs) {
+        _autoFadeTimingMs = newViewProps.autoFadeTimingMs;
+        [self scheduleAutoFade];
+    }
+
     [super updateProps:props oldProps:oldProps];
+}
+
+- (CGSize)intrinsicContentSize
+{
+  return CGSizeMake(_size, _size);
+}
+
+- (void)layoutSubviews
+{
+  [super layoutSubviews];
+  _view.frame = self.bounds;
+  _view.layer.cornerRadius = MIN(self.bounds.size.width, self.bounds.size.height) / 2.0;
+}
+
+- (void)handlePan:(UIPanGestureRecognizer *)gesture
+{
+  UIView *target = _view;
+  CGPoint translation = [gesture translationInView:target.superview];
+  if (gesture.state == UIGestureRecognizerStateBegan) {
+    [self cancelAutoFade];
+    _view.alpha = _bubbleOpacity;
+  }
+
+  CGPoint newCenter = CGPointMake(target.center.x + translation.x, target.center.y + translation.y);
+  target.center = newCenter;
+  [gesture setTranslation:CGPointZero inView:target.superview];
+
+  if (gesture.state == UIGestureRecognizerStateEnded || gesture.state == UIGestureRecognizerStateCancelled) {
+    [self scheduleAutoFade];
+  }
+}
+
+- (void)scheduleAutoFade
+{
+  [self cancelAutoFade];
+  if (!_autoFade) {
+    return;
+  }
+
+  __weak typeof(self) weakSelf = self;
+  _fadeTimer = [NSTimer scheduledTimerWithTimeInterval:((double)_autoFadeTimingMs / 1000.0)
+                                                repeats:NO
+                                                  block:^(NSTimer * _Nonnull timer) {
+    __strong typeof(weakSelf) strongSelf = weakSelf;
+    if (!strongSelf) return;
+    [UIView animateWithDuration:0.2 animations:^{
+      strongSelf->_view.alpha = strongSelf->_autoFadeOpacity;
+    }];
+  }];
+}
+
+- (void)cancelAutoFade
+{
+  if (_fadeTimer) {
+    [_fadeTimer invalidate];
+    _fadeTimer = nil;
+  }
 }
 
 @end

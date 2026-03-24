@@ -3,6 +3,7 @@ package com.floatingactionbubble
 import com.facebook.react.BaseReactPackage
 import com.facebook.react.bridge.NativeModule
 import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.module.model.ReactModuleInfo
 import com.facebook.react.module.model.ReactModuleInfoProvider
 import com.facebook.react.uimanager.ViewManager
 
@@ -11,7 +12,23 @@ class FloatingActionBubbleViewPackage : BaseReactPackage() {
     return listOf(FloatingActionBubbleViewManager())
   }
 
-  override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? = null
+  override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? {
+    return when (name) {
+      FloatingActionBubbleModule.NAME -> FloatingActionBubbleModule(reactContext)
+      else -> null
+    }
+  }
 
-  override fun getReactModuleInfoProvider() = ReactModuleInfoProvider { emptyMap() }
+  override fun getReactModuleInfoProvider() = ReactModuleInfoProvider {
+    val moduleInfo = ReactModuleInfo(
+      FloatingActionBubbleModule.NAME,
+      FloatingActionBubbleModule.NAME,
+      false,
+      false,
+      true,
+      false,
+      false
+    )
+    mapOf(FloatingActionBubbleModule.NAME to moduleInfo)
+  }
 }

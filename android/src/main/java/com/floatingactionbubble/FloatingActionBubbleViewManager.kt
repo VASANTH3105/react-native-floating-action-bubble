@@ -31,8 +31,48 @@ class FloatingActionBubbleViewManager : SimpleViewManager<FloatingActionBubbleVi
   }
 
   @ReactProp(name = "color")
-  override fun setColor(view: FloatingActionBubbleView?, color: Int?) {
-    view?.setBackgroundColor(color ?: Color.TRANSPARENT)
+  override fun setColor(view: FloatingActionBubbleView, color: Int?) {
+    view.setBubbleColor(color ?: Color.WHITE)
+  }
+
+  @ReactProp(name = "size")
+  override fun setSize(view: FloatingActionBubbleView, size: Float) {
+    view.setSize(size)
+  }
+
+  @ReactProp(name = "borderColor")
+  override fun setBorderColor(view: FloatingActionBubbleView, color: Int?) {
+    view.setBorderColor(color ?: Color.WHITE)
+  }
+
+  @ReactProp(name = "borderWidth")
+  override fun setBorderWidth(view: FloatingActionBubbleView, borderWidth: Float) {
+    view.setBorderWidth(borderWidth)
+  }
+
+  @ReactProp(name = "bubbleOpacity")
+  override fun setBubbleOpacity(view: FloatingActionBubbleView, opacity: Float) {
+    view.setBubbleOpacity(opacity)
+  }
+
+  @ReactProp(name = "borderOpacity")
+  override fun setBorderOpacity(view: FloatingActionBubbleView, opacity: Float) {
+    view.setBorderOpacity(opacity)
+  }
+
+  @ReactProp(name = "autoFade")
+  override fun setAutoFade(view: FloatingActionBubbleView, enabled: Boolean) {
+    view.setAutoFade(enabled)
+  }
+
+  @ReactProp(name = "autoFadeOpacity")
+  override fun setAutoFadeOpacity(view: FloatingActionBubbleView, opacity: Float) {
+    view.setAutoFadeOpacity(opacity)
+  }
+
+  @ReactProp(name = "autoFadeTimingMs")
+  override fun setAutoFadeTimingMs(view: FloatingActionBubbleView, value: Int) {
+    view.setAutoFadeTimingMs(value)
   }
 
   companion object {
