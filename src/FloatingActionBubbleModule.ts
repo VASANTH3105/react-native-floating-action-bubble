@@ -10,6 +10,10 @@ type OverlayOptions = {
   autoFade?: boolean;
   autoFadeOpacity?: number;
   autoFadeTimingMs?: number;
+  onLongPressNavigate?: string;
+  positionSticky?: boolean;
+  stickyShapeAdaptive?: boolean;
+  stickyCornerRadius?: number;
 };
 
 type NotificationOptions = {

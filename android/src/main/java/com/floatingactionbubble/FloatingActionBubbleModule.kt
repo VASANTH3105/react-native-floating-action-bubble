@@ -71,6 +71,18 @@ class FloatingActionBubbleModule(reactContext: ReactApplicationContext) :
       if (options.hasKey("autoFadeTimingMs") && !options.isNull("autoFadeTimingMs")) {
         intent.putExtra("autoFadeTimingMs", options.getInt("autoFadeTimingMs"))
       }
+      if (options.hasKey("onLongPressNavigate") && !options.isNull("onLongPressNavigate")) {
+        intent.putExtra("onLongPressNavigate", options.getString("onLongPressNavigate"))
+      }
+      if (options.hasKey("positionSticky") && !options.isNull("positionSticky")) {
+        intent.putExtra("positionSticky", options.getBoolean("positionSticky"))
+      }
+      if (options.hasKey("stickyShapeAdaptive") && !options.isNull("stickyShapeAdaptive")) {
+        intent.putExtra("stickyShapeAdaptive", options.getBoolean("stickyShapeAdaptive"))
+      }
+      if (options.hasKey("stickyCornerRadius") && !options.isNull("stickyCornerRadius")) {
+        intent.putExtra("stickyCornerRadius", options.getDouble("stickyCornerRadius").toFloat())
+      }
     }
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

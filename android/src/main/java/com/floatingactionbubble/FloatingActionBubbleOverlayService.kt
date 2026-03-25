@@ -13,9 +13,12 @@ import android.content.pm.ServiceInfo
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.WindowManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
+import android.net.Uri
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 class FloatingActionBubbleOverlayService : Service() {
@@ -24,6 +27,8 @@ class FloatingActionBubbleOverlayService : Service() {
   private var layoutParams: WindowManager.LayoutParams? = null
   private var screenWidth = 0
   private var screenHeight = 0
+  private var onLongPressNavigate: String? = null
+  private var positionSticky: Boolean = false
 
   override fun onCreate() {
     super.onCreate()
@@ -88,7 +93,13 @@ class FloatingActionBubbleOverlayService : Service() {
     val autoFade = intent?.getBooleanExtra("autoFade", false)
     val autoFadeOpacity = intent?.getFloatExtra("autoFadeOpacity", -1f) ?: -1f
     val autoFadeTimingMs = intent?.getIntExtra("autoFadeTimingMs", -1) ?: -1
+    val onLongPressNavigate = intent?.getStringExtra("onLongPressNavigate")
+    val positionSticky = intent?.getBooleanExtra("positionSticky", false) ?: false
+    val stickyShapeAdaptive = intent?.getBooleanExtra("stickyShapeAdaptive", true)
+    val stickyCornerRadius = intent?.getFloatExtra("stickyCornerRadius", -1f) ?: -1f
 
+    this.onLongPressNavigate = onLongPressNavigate
+    this.positionSticky = positionSticky
     view.applyOverlayConfig(
       sizeDp.takeIf { it > 0f },
       color.takeIf { it != null && it != Int.MIN_VALUE },
@@ -98,7 +109,11 @@ class FloatingActionBubbleOverlayService : Service() {
       borderOpacity.takeIf { it >= 0f },
       autoFade,
       autoFadeOpacity.takeIf { it >= 0f },
-      autoFadeTimingMs.takeIf { it >= 0 }
+      autoFadeTimingMs.takeIf { it >= 0 },
+      onLongPressNavigate,
+      positionSticky,
+      stickyShapeAdaptive,
+      stickyCornerRadius.takeIf { it >= 0f }
     )
 
     if (sizeDp > 0f) {
@@ -111,15 +126,41 @@ class FloatingActionBubbleOverlayService : Service() {
   private fun attachDragHandler(view: View) {
     var dragDX = 0f
     var dragDY = 0f
+    var downRawX = 0f
+    var downRawY = 0f
+    val longPressHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    val longPressRunnable = Runnable {
+      openDeepLink(onLongPressNavigate)
+    }
     view.setOnTouchListener { _, event ->
       val params = layoutParams ?: return@setOnTouchListener false
       when (event.actionMasked) {
         MotionEvent.ACTION_DOWN -> {
           dragDX = event.rawX - params.x
           dragDY = event.rawY - params.y
+          downRawX = event.rawX
+          downRawY = event.rawY
+          if (view is FloatingActionBubbleView) {
+            view.cancelAutoFade()
+          }
+          view.alpha = 1f
+          if (view is FloatingActionBubbleView) {
+            view.animateToCircleShapeFromOverlay()
+          }
+          if (!onLongPressNavigate.isNullOrBlank()) {
+            longPressHandler.postDelayed(
+              longPressRunnable,
+              ViewConfiguration.getLongPressTimeout().toLong()
+            )
+          }
           true
         }
         MotionEvent.ACTION_MOVE -> {
+          val moveX = abs(event.rawX - downRawX)
+          val moveY = abs(event.rawY - downRawY)
+          if (moveX > 10 || moveY > 10) {
+            longPressHandler.removeCallbacks(longPressRunnable)
+          }
           val viewWidth = view.width.takeIf { it > 0 } ?: dpToPx(DEFAULT_SIZE_DP)
           val viewHeight = view.height.takeIf { it > 0 } ?: dpToPx(DEFAULT_SIZE_DP)
           val maxX = (screenWidth - viewWidth).coerceAtLeast(0)
@@ -127,6 +168,20 @@ class FloatingActionBubbleOverlayService : Service() {
           params.x = (event.rawX - dragDX).roundToInt().coerceIn(0, maxX)
           params.y = (event.rawY - dragDY).roundToInt().coerceIn(0, maxY)
           windowManager?.updateViewLayout(view, params)
+          true
+        }
+        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+          longPressHandler.removeCallbacks(longPressRunnable)
+          if (view is FloatingActionBubbleView && view.isClickable) {
+            if (positionSticky) {
+              snapOverlayToNearestEdge(view, params)
+            } else {
+              view.animateToCircleShapeFromOverlay()
+            }
+          }
+          if (view is FloatingActionBubbleView) {
+            view.triggerAutoFade()
+          }
           true
         }
         else -> false
@@ -174,6 +229,46 @@ class FloatingActionBubbleOverlayService : Service() {
     val density = resources.displayMetrics.density
     return (dp * density).roundToInt()
   }
+
+  private fun snapOverlayToNearestEdge(view: View, params: WindowManager.LayoutParams) {
+    val viewWidth = view.width.takeIf { it > 0 } ?: dpToPx(DEFAULT_SIZE_DP)
+    val viewHeight = view.height.takeIf { it > 0 } ?: dpToPx(DEFAULT_SIZE_DP)
+    val maxX = (screenWidth - viewWidth).coerceAtLeast(0)
+    val maxY = (screenHeight - viewHeight).coerceAtLeast(0)
+    val left = params.x.toFloat()
+    val top = params.y.toFloat()
+    val right = (maxX - params.x).toFloat()
+    val bottom = (maxY - params.y).toFloat()
+
+    val min = listOf(
+      left to "LEFT",
+      right to "RIGHT",
+      top to "TOP",
+      bottom to "BOTTOM"
+    ).minByOrNull { it.first } ?: return
+
+    when (min.second) {
+      "LEFT" -> params.x = 0
+      "RIGHT" -> params.x = maxX
+      "TOP" -> params.y = 0
+      "BOTTOM" -> params.y = maxY
+    }
+
+    if (view is FloatingActionBubbleView) {
+      view.animateToStickyEdgeFromOverlay(min.second)
+    }
+    windowManager?.updateViewLayout(view, params)
+  }
+
+  private fun openDeepLink(path: String?) {
+    if (path.isNullOrBlank()) return
+    runCatching {
+      val intent = Intent(Intent.ACTION_VIEW, Uri.parse(path))
+      intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      startActivity(intent)
+    }
+  }
+
 
   companion object {
     private const val DEFAULT_SIZE_DP = 48f
